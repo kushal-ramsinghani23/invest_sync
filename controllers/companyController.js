@@ -1,5 +1,22 @@
 const { query } = require('../db/query');
 
+const VALID_STAGES = ['In Review', 'Due Diligence', 'Invested', 'Passed'];
+
+const validateCompanyInput = (data) => {
+    const { name, stage, metric_value } = data;
+
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+        return 'Company name is required';
+    }
+    if (stage && !VALID_STAGES.includes(stage)) {
+        return `Stage must be one of: ${VALID_STAGES.join(', ')}`;
+    }
+    if (metric_value !== undefined && (isNaN(metric_value) || metric_value < 0)) {
+        return 'metric_value must be a non-negative number';
+    }
+    return null; // no error
+};
+
 const getCompanies = async (req, res) => {
     try {
         const result = await query('SELECT * FROM companies ORDER BY updated_at DESC');
@@ -13,8 +30,9 @@ const getCompanies = async (req, res) => {
 const createCompany = async (req, res) => {
     const { name, sector, stage, metric_value } = req.body;
 
-    if (!name) {
-        return res.status(400).json({ error: 'Company name is required' });
+    const error = validateCompanyInput(req.body);
+    if (error) {
+        return res.status(400).json({ error });
     }
 
     try {
@@ -33,6 +51,11 @@ const createCompany = async (req, res) => {
 const updateCompany = async (req, res) => {
     const { id } = req.params;
     const { name, sector, stage, metric_value } = req.body;
+
+    const error = validateCompanyInput(req.body);
+    if (error) {
+        return res.status(400).json({ error });
+    }
 
     try {
         const result = await query(
@@ -73,4 +96,4 @@ const deleteCompany = async (req, res) => {
     }
 };
 
-module.exports = { getCompanies, createCompany, updateCompany, deleteCompany };
+module.exports = { getCompanies, createCompany, updateCompany, deleteCompany, validateCompanyInput };
