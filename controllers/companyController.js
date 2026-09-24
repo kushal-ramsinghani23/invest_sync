@@ -30,4 +30,27 @@ const createCompany = async (req, res) => {
     }
 };
 
-module.exports = { getCompanies, createCompany };
+const updateCompany = async (req, res) => {
+    const { id } = req.params;
+    const { name, sector, stage, metric_value } = req.body;
+
+    try {
+        const result = await query(
+            `UPDATE companies
+                    SET name = $1, sector = $2, stage = $3, metric_value = $4, updated_at = NOW()
+                    WHERE id = $5 RETURNING *`,
+            [name, sector, stage, metric_value, id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Company not found' });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to update company' });
+    }
+};
+
+module.exports = { getCompanies, createCompany, updateCompany };
