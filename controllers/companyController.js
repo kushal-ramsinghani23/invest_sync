@@ -1,4 +1,5 @@
 const { query } = require('../db/query');
+const { logActivity } = require('../db/activityLog');
 
 const VALID_STAGES = ['In Review', 'Due Diligence', 'Invested', 'Passed'];
 
@@ -78,6 +79,8 @@ const createCompany = async (req, res, io) => {
         );
         const company = result.rows[0];
         io.emit('companyCreated', company);
+        const logEntry = await logActivity('CREATED', company.name, `Stage: ${company.stage}`);
+        io.emit('activityLogged', logEntry);
         res.status(201).json(company);
     } catch (err) {
         console.error(err);
@@ -108,6 +111,8 @@ const updateCompany = async (req, res, io) => {
 
         const company = result.rows[0];
         io.emit('companyUpdated', company);
+        const logEntry = await logActivity('UPDATED', company.name, `Stage: ${company.stage}, Value: ${company.metric_value}`);
+        io.emit('activityLogged', logEntry);
         res.json(company);
     } catch (err) {
         console.error(err);
@@ -129,6 +134,8 @@ const deleteCompany = async (req, res, io) => {
         }
         const company = result.rows[0];
         io.emit('companyDeleted', company);
+        const logEntry = await logActivity('DELETED', company.name, 'Removed from tracking');
+        io.emit('activityLogged', logEntry);
         res.status(201).json(company);
         res.json({ message: 'Company deleted successfully', company });
     } catch (err) {
@@ -158,4 +165,14 @@ const getStats = async (req, res) => {
     }
 };
 
-module.exports = { validateCompanyInput, getCompanies, createCompany, updateCompany, deleteCompany, getStats };
+const getActivity = async (req, res) => {
+    try {
+        const result = await query('SELECT * FROM activity_log ORDER BY created_at DESC LIMIT 20');
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch activity log' });
+    }
+};
+
+module.exports = { validateCompanyInput, getCompanies, createCompany, updateCompany, deleteCompany, getStats, getActivity };

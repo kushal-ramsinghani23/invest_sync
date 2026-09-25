@@ -9,6 +9,7 @@ module.exports = (io) => {
     router.delete('/:id', (req, res) => companyController.deleteCompany(req, res, io));
 
     router.get('/stats', companyController.getStats);
+    router.get('/activity', companyController.getActivity);
 
     return router;
 };
