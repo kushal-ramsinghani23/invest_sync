@@ -19,8 +19,43 @@ const validateCompanyInput = (data) => {
 
 const getCompanies = async (req, res) => {
     try {
-        const result = await query('SELECT * FROM companies ORDER BY updated_at DESC');
-        res.json(result.rows);
+        const { search, sector, stage, page = 1, limit = 10 } = req.query;
+        const conditions = [];
+        const values = [];
+        let idx = 1;
+
+        if (search) {
+            conditions.push(`name ILIKE $${idx++}`);
+            values.push(`%${search}%`);
+        }
+        if (sector) {
+            conditions.push(`sector = $${idx++}`);
+            values.push(sector);
+        }
+        if (stage) {
+            conditions.push(`stage = $${idx++}`);
+            values.push(stage);
+        }
+
+        const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+        const offset = (Number(page) - 1) * Number(limit);
+
+        const dataResult = await query(
+            `SELECT * FROM companies ${whereClause} ORDER BY updated_at DESC LIMIT $${idx} OFFSET $${idx + 1}`,
+            [...values, limit, offset]
+        );
+
+        const countResult = await query(
+            `SELECT COUNT(*)::int as total FROM companies ${whereClause}`,
+            values
+        );
+
+        res.json({
+            data: dataResult.rows,
+            total: countResult.rows[0].total,
+            page: Number(page),
+            totalPages: Math.ceil(countResult.rows[0].total / Number(limit)) || 1,
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to fetch companies' });
