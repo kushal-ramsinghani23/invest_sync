@@ -27,7 +27,7 @@ const getCompanies = async (req, res) => {
     }
 };
 
-const createCompany = async (req, res) => {
+const createCompany = async (req, res, io) => {
     const { name, sector, stage, metric_value } = req.body;
 
     const error = validateCompanyInput(req.body);
@@ -41,14 +41,16 @@ const createCompany = async (req, res) => {
                     VALUES ($1, $2, $3, $4) RETURNING *`,
             [name, sector, stage, metric_value]
         );
-        res.status(201).json(result.rows[0]);
+        const company = result.rows[0];
+        io.emit('companyCreated', company);
+        res.status(201).json(company);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to create company' });
     }
 };
 
-const updateCompany = async (req, res) => {
+const updateCompany = async (req, res, io) => {
     const { id } = req.params;
     const { name, sector, stage, metric_value } = req.body;
 
@@ -69,14 +71,16 @@ const updateCompany = async (req, res) => {
             return res.status(404).json({ error: 'Company not found' });
         }
 
-        res.json(result.rows[0]);
+        const company = result.rows[0];
+        io.emit('companyUpdated', company);
+        res.json(company);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to update company' });
     }
 };
 
-const deleteCompany = async (req, res) => {
+const deleteCompany = async (req, res, io) => {
     const { id } = req.params;
 
     try {
@@ -88,8 +92,10 @@ const deleteCompany = async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Company not found' });
         }
-
-        res.json({ message: 'Company deleted successfully', company: result.rows[0] });
+        const company = result.rows[0];
+        io.emit('companyDeleted', company);
+        res.status(201).json(company);
+        res.json({ message: 'Company deleted successfully', company });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to delete company' });
