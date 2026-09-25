@@ -102,4 +102,25 @@ const deleteCompany = async (req, res, io) => {
     }
 };
 
-module.exports = { getCompanies, createCompany, updateCompany, deleteCompany, validateCompanyInput };
+const getStats = async (req, res) => {
+    try {
+        const totals = await query(
+            `SELECT COUNT(*)::int as total_companies,
+                    COALESCE(SUM(metric_value), 0)::numeric as total_value
+                    FROM companies`
+        );
+        const byStage = await query(
+            `SELECT stage, COUNT(*)::int as count FROM companies GROUP BY stage`
+        );
+        res.json({
+            totalCompanies: totals.rows[0].total_companies,
+            totalValue: totals.rows[0].total_value,
+            byStage: byStage.rows
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+};
+
+module.exports = { validateCompanyInput, getCompanies, createCompany, updateCompany, deleteCompany, getStats };
