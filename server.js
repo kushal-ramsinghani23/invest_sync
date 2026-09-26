@@ -28,4 +28,6 @@ server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 })
 
+const authRoutes = require('./routes/authRoutes');
+app.use('/auth', authRoutes);
 
